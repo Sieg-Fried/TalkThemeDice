@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Physics Dice</title>
+    <!-- Tailwind CSS for UI styling -->
+    <script src="js/tailwindcss.min.js"></script>
+    <!-- Three.js for 3D rendering -->
+    <script src="js/three.min.js"></script>
+    <!-- Cannon.js for physics engine -->
+    <script src="js/cannon.min.js"></script>
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #111827; /* Tailwind Gray-900 */
+            touch-action: none; /* Prevent scroll on touch devices */
+        }
+        #game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through to canvas if needed */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- UI Layer -->
+    <div id="ui-layer" class="py-8 px-4">
+        
+        <!-- Settings Panel for Custom Text -->
+        <div class="pointer-events-auto absolute top-4 left-4 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 shadow-xl w-48 transition-transform transform z-20 hidden md:block group hover:bg-white/20">
+            <h3 class="text-white text-sm font-bold mb-3 tracking-wide">トークテーマ一覧</h3>
+            <div class="flex flex-col gap-2">
+                <input type="text" id="face-1" value="トークテーマ１" placeholder="トークテーマ１" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                <input type="text" id="face-2" value="トークテーマ２" placeholder="トークテーマ２" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                <input type="text" id="face-3" value="トークテーマ３" placeholder="トークテーマ３" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                <input type="text" id="face-4" value="トークテーマ４" placeholder="トークテーマ４" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                <input type="text" id="face-5" value="トークテーマ５" placeholder="トークテーマ５" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                <input type="text" id="face-6" value="トークテーマ６" placeholder="トークテーマ６" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+            </div>
+            <p id="edit-warning" class="text-xs text-amber-400 mt-3 hidden">現在トークテーマが進行中のため編集できません</p>
+        </div>
+
+        <!-- Header -->
+        <div class="text-center mt-4">
+            <h1 class="text-4xl font-bold text-white tracking-wider drop-shadow-lg">トークテーマダイス</h1>
+        </div>
+
+        <!-- Result Display -->
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10">
+            <div id="result-display" class="relative pointer-events-auto transition-all duration-500 ease-out opacity-0 scale-50 bg-white/90 backdrop-blur-sm text-gray-900 rounded-3xl shadow-2xl px-8 py-8 flex flex-col items-center border border-gray-200 min-w-[250px] max-w-[90vw]">
+                <!-- Close Button -->
+                <button id="close-result-btn" class="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-full hover:bg-red-50 active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <span id="result-title" class="text-lg font-bold text-gray-400 tracking-widest mb-2">今回のトークテーマは？</span>
+                <span id="result-number" class="text-9xl font-black bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-teal-700 drop-shadow-sm text-center break-words max-w-full">6</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="pointer-events-auto mt-auto flex justify-center items-center gap-4 mb-8">
+            <button id="reset-btn" class="px-6 py-4 font-bold text-gray-300 rounded-full bg-gray-800 border border-gray-600 hover:bg-gray-700 hover:text-white transition-all duration-300 active:scale-95 shadow-lg">
+                <span class="text-base tracking-wider font-bold whitespace-nowrap">トークをやめる</span>
+            </button>
+            <button id="roll-btn" class="group relative px-10 py-5 font-bold text-white rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 overflow-hidden shadow-[0_10px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_15px_30px_rgba(16,185,129,0.5)] hover:-translate-y-1 transition-all duration-300 active:scale-95 active:translate-y-1">
+                <span class="relative z-10 text-xl tracking-wider font-bold whitespace-nowrap">ダイスを振る</span>
+                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, world;
+        let diceMesh, diceBody;
+        let isRolling = false;
+        
+        // UI Elements
+        let resultDisplay, resultNumber, rollBtn, resetBtn, closeResultBtn;
+        let faceInputs = [];
+        let completedFaces = new Set();
+
+        // Camera interaction variables
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetCameraX = 0;
+        let targetCameraY = 15;
+
+        function init() {
+            // Get DOM elements
+            resultDisplay = document.getElementById('result-display');
+            resultNumber = document.getElementById('result-number');
+            rollBtn = document.getElementById('roll-btn');
+            resetBtn = document.getElementById('reset-btn');
+            closeResultBtn = document.getElementById('close-result-btn');
+
+            for(let i=1; i<=6; i++) {
+                const input = document.getElementById(`face-${i}`);
+                if (input) {
+                    input.addEventListener('input', updateDiceTextures);
+                    faceInputs.push(input);
+                }
+            }
+
+            // Setup Three.js Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111827); // Matches background
+            scene.fog = new THREE.Fog(0x111827, 20, 50);
+
+            // Setup Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 15, 20);
+            camera.lookAt(0, 0, 0);
+
+            // Setup Renderer
+            const canvas = document.getElementById('game-canvas');
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 50;
+            dirLight.shadow.camera.left = -15;
+            dirLight.shadow.camera.right = 15;
+            dirLight.shadow.camera.top = 15;
+            dirLight.shadow.camera.bottom = -15;
+            scene.add(dirLight);
+
+            // Setup Cannon.js World
+            world = new CANNON.World();
+            world.gravity.set(0, -40, 0); // High gravity for snappy, realistic dice feeling
+            world.broadphase = new CANNON.NaiveBroadphase();
+            world.solver.iterations = 20;
+
+            // Physics Materials
+            const floorMatPhysics = new CANNON.Material();
+            const diceMatPhysics = new CANNON.Material();
+            const contactMaterial = new CANNON.ContactMaterial(floorMatPhysics, diceMatPhysics, {
+                friction: 0.3,
+                restitution: 0.5 // Bounciness
+            });
+            world.addContactMaterial(contactMaterial);
+
+            // Floor (Three.js)
+            const floorGeo = new THREE.PlaneGeometry(100, 100);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x0f5132, // Casino green felt style
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+            floorMesh.rotation.x = -Math.PI / 2;
+            floorMesh.receiveShadow = true;
+            scene.add(floorMesh);
+
+            // Floor (Cannon.js)
+            const floorBody = new CANNON.Body({ mass: 0, material: floorMatPhysics });
+            floorBody.addShape(new CANNON.Plane());
+            floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+            world.addBody(floorBody);
+
+            // Invisible Walls to keep dice in view
+            createWall(0, 5, -12, 26, 20, 2); // Top/North
+            createWall(0, 5, 12, 26, 20, 2);  // Bottom/South
+            createWall(-12, 5, 0, 2, 20, 26); // Left/West
+            createWall(12, 5, 0, 2, 20, 26);  // Right/East
+
+            // Create the Dice
+            createDice(diceMatPhysics);
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize, false);
+            rollBtn.addEventListener('click', rollDice);
+            resetBtn.addEventListener('click', resetDice);
+            closeResultBtn.addEventListener('click', () => {
+                resultDisplay.classList.add('opacity-0', 'scale-50');
+                resultDisplay.classList.remove('opacity-100', 'scale-100');
+            });
+            
+            // Interaction for parallax camera effect
+            window.addEventListener('mousemove', onMouseMove, false);
+            window.addEventListener('touchmove', onTouchMove, { passive: true });
+
+            // Start Animation Loop
+            requestAnimationFrame(animate);
+        }
+
+        function createWall(x, y, z, width, height, depth) {
+            const wallShape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
+            const wallBody = new CANNON.Body({ mass: 0 }); // Mass 0 makes it static
+            wallBody.addShape(wallShape);
+            wallBody.position.set(x, y, z);
+            world.addBody(wallBody);
+        }
+
+        function createTextTexture(text, isFace1) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Draw base (Slightly rounded rectangle on a gray background to hide seams)
+            ctx.fillStyle = '#e2e8f0'; 
+            ctx.fillRect(0, 0, 256, 256);
+            
+            ctx.fillStyle = '#ffffff';
+            
+            // Custom rounded rectangle implementation for maximum compatibility
+            const radius = 40;
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.lineTo(256 - radius, 0);
+            ctx.quadraticCurveTo(256, 0, 256, radius);
+            ctx.lineTo(256, 256 - radius);
+            ctx.quadraticCurveTo(256, 256, 256 - radius, 256);
+            ctx.lineTo(radius, 256);
+            ctx.quadraticCurveTo(0, 256, 0, 256 - radius);
+            ctx.lineTo(0, radius);
+            ctx.quadraticCurveTo(0, 0, radius, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw Text
+            ctx.fillStyle = '#000000'; // 全ての面を黒色に統一
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Adjust font size based on text length
+            let fontSize = 100;
+            if (text.length > 1) fontSize = 80;
+            if (text.length > 3) fontSize = 50;
+            if (text.length > 5) fontSize = 35;
+            if (text.length > 8) fontSize = 25;
+            
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            
+            // Draw text, max width 220px to fit inside padding
+            ctx.fillText(text, 128, 128, 220); 
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.anisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 16;
+            return texture;
+        }
+
+        function updateDiceTextures() {
+            if (!diceMesh) return;
+            // Map Three.js material index to Dice Face number (1 to 6)
+            const faceMap = [1, 6, 2, 5, 3, 4];
+            
+            for (let i = 0; i < 6; i++) {
+                const faceNumber = faceMap[i];
+                const inputEl = document.getElementById(`face-${faceNumber}`);
+                let text = inputEl ? inputEl.value : String(faceNumber);
+                
+                // サイコロのテクスチャ描画には「✅」マークを含めない
+                text = text.replace(/^✅\s*/, '');
+                
+                const isFace1 = (faceNumber === 1);
+                
+                const newTexture = createTextTexture(text, isFace1);
+                
+                // Free up memory from old texture
+                if (diceMesh.material[i].map) {
+                    diceMesh.material[i].map.dispose();
+                }
+                
+                diceMesh.material[i].map = newTexture;
+                diceMesh.material[i].needsUpdate = true;
+            }
+        }
+
+        function setInputsEnabled(enabled) {
+            const warningEl = document.getElementById('edit-warning');
+            
+            // 進行中（1つでも目が確定している）場合は強制的に全体を無効化する
+            const isInProgress = completedFaces.size > 0;
+            const shouldDisable = !enabled || isInProgress;
+
+            // 編集不可の時だけメッセージを表示する
+            if (warningEl) {
+                if (shouldDisable) {
+                    warningEl.classList.remove('hidden');
+                } else {
+                    warningEl.classList.add('hidden');
+                }
+            }
+
+            faceInputs.forEach((input, index) => {
+                const faceIndex = index + 1;
+                
+                // 既に確定した目は常にグレーアウト・操作不可をキープ
+                if (completedFaces.has(faceIndex)) {
+                    input.disabled = true;
+                    input.classList.add('opacity-50', 'cursor-not-allowed');
+                    return;
+                }
+
+                input.disabled = shouldDisable;
+                if (shouldDisable) {
+                    input.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    input.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            });
+        }
+
+        function markFaceCompleted(faceIndex) {
+            completedFaces.add(faceIndex);
+            const inputEl = document.getElementById(`face-${faceIndex}`);
+            if (inputEl) {
+                // まだ✅がなければ先頭に追加
+                if (!inputEl.value.startsWith('✅ ')) {
+                    inputEl.value = '✅ ' + inputEl.value;
+                }
+                inputEl.disabled = true;
+                // グレーアウトした暗い見た目に変更
+                inputEl.classList.add('opacity-50', 'bg-gray-800', 'text-gray-400', 'cursor-not-allowed');
+                inputEl.classList.remove('bg-gray-900/60', 'text-white');
+            }
+        }
+
+        function resetDice() {
+            isRolling = false;
+            completedFaces.clear();
+            
+            // Hide result UI
+            resultDisplay.classList.add('opacity-0', 'scale-50');
+            resultDisplay.classList.remove('opacity-100', 'scale-100');
+            document.getElementById('result-title').innerText = '今回のトークテーマは？';
+
+            // 入力テキストは保持したまま、✅とグレーアウト状態だけ解除する
+            faceInputs.forEach((input) => {
+                if (input.value.startsWith('✅ ')) {
+                    input.value = input.value.replace(/^✅\s*/, '');
+                }
+                input.classList.remove('bg-gray-800', 'text-gray-400');
+                input.classList.add('bg-gray-900/60', 'text-white');
+            });
+            
+            updateDiceTextures();
+            setInputsEnabled(true);
+            
+            // ロールボタンを再度有効化・テキストリセット
+            rollBtn.disabled = false;
+            rollBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            document.querySelector('#roll-btn span.relative').innerText = 'ダイスを振る';
+
+            // Reset physical dice body to center
+            diceBody.position.set(0, 2, 0);
+            diceBody.velocity.set(0, 0, 0);
+            diceBody.angularVelocity.set(0, 0, 0);
+            diceBody.quaternion.setFromEuler(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+        }
+
+        function createDice(physicsMaterial) {
+            const size = 2;
+            const halfExtents = new CANNON.Vec3(size / 2, size / 2, size / 2);
+            
+            // Cannon.js Body
+            const shape = new CANNON.Box(halfExtents);
+            diceBody = new CANNON.Body({ mass: 1, material: physicsMaterial });
+            diceBody.addShape(shape);
+            diceBody.position.set(0, 2, 0);
+            
+            // Add a little initial random rotation
+            diceBody.quaternion.setFromEuler(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+            world.addBody(diceBody);
+
+            // Three.js Mesh
+            const geometry = new THREE.BoxGeometry(size, size, size);
+            
+            const getText = (num) => {
+                const el = document.getElementById(`face-${num}`);
+                return el ? el.value : String(num);
+            };
+
+            // Apply materials to faces (Order: +x, -x, +y, -y, +z, -z)
+            // Opposite faces must add up to 7
+            const materials = [
+                new THREE.MeshStandardMaterial({ map: createTextTexture(getText(1), true), roughness: 0.2, metalness: 0.1 }), // Right: 1
+                new THREE.MeshStandardMaterial({ map: createTextTexture(getText(6), false), roughness: 0.2, metalness: 0.1 }), // Left: 6
+                new THREE.MeshStandardMaterial({ map: createTextTexture(getText(2), false), roughness: 0.2, metalness: 0.1 }), // Top: 2
+                new THREE.MeshStandardMaterial({ map: createTextTexture(getText(5), false), roughness: 0.2, metalness: 0.1 }), // Bottom: 5
+                new THREE.MeshStandardMaterial({ map: createTextTexture(getText(3), false), roughness: 0.2, metalness: 0.1 }), // Front: 3
+                new THREE.MeshStandardMaterial({ map: createTextTexture(getText(4), false), roughness: 0.2, metalness: 0.1 })  // Back: 4
+            ];
+
+            diceMesh = new THREE.Mesh(geometry, materials);
+            diceMesh.castShadow = true;
+            diceMesh.receiveShadow = true;
+            scene.add(diceMesh);
+        }
+
+        function rollDice() {
+            if (isRolling || completedFaces.size >= 6) return;
+
+            // 5つ確定している場合は最後の1つを表示する
+            if (completedFaces.size === 5) {
+                autoCompleteLastFace();
+                return;
+            }
+
+            isRolling = true;
+            
+            // Disable inputs while rolling
+            setInputsEnabled(false);
+            
+            // Hide result UI
+            resultDisplay.classList.add('opacity-0', 'scale-50');
+            resultDisplay.classList.remove('opacity-100', 'scale-100');
+
+            // Reset position slightly above the center
+            diceBody.position.set(0, 8, 0);
+            
+            // Randomize velocity (throw it in random directions but upwards)
+            diceBody.velocity.set(
+                (Math.random() - 0.5) * 20,
+                15 + Math.random() * 10,
+                (Math.random() - 0.5) * 20
+            );
+            
+            // Randomize angular velocity (spin)
+            const spin = 25;
+            diceBody.angularVelocity.set(
+                (Math.random() - 0.5) * spin,
+                (Math.random() - 0.5) * spin,
+                (Math.random() - 0.5) * spin
+            );
+        }
+
+        function getDiceResult() {
+            // Copy current rotation
+            const diceQuaternion = new THREE.Quaternion().copy(diceMesh.quaternion);
+            const upVector = new THREE.Vector3(0, 1, 0);
+            
+            // Transform the world UP vector into the local space of the dice
+            const localUp = upVector.clone().applyQuaternion(diceQuaternion.invert());
+            
+            // Define normals for each face based on our material array order
+            const normals = [
+                { face: 1, v: new THREE.Vector3( 1, 0, 0) }, // +x
+                { face: 6, v: new THREE.Vector3(-1, 0, 0) }, // -x
+                { face: 2, v: new THREE.Vector3( 0, 1, 0) }, // +y
+                { face: 5, v: new THREE.Vector3( 0,-1, 0) }, // -y
+                { face: 3, v: new THREE.Vector3( 0, 0, 1) }, // +z
+                { face: 4, v: new THREE.Vector3( 0, 0,-1) }  // -z
+            ];
+            
+            // Find which face normal is closest to the local UP vector
+            let maxDot = -Infinity;
+            let result = -1;
+            
+            for (let i = 0; i < normals.length; i++) {
+                const dot = localUp.dot(normals[i].v);
+                if (dot > maxDot) {
+                    maxDot = dot;
+                    result = normals[i].face;
+                }
+            }
+            return result;
+        }
+
+        function autoCompleteLastFace() {
+            // 残りの1面を見つける
+            let lastFaceIndex = -1;
+            for (let i = 1; i <= 6; i++) {
+                if (!completedFaces.has(i)) {
+                    lastFaceIndex = i;
+                    break;
+                }
+            }
+            
+            if (lastFaceIndex === -1) return;
+
+            markFaceCompleted(lastFaceIndex);
+
+            // ロールボタンを無効化
+            rollBtn.disabled = true;
+            rollBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            const inputEl = document.getElementById(`face-${lastFaceIndex}`);
+            const rawText = inputEl ? inputEl.value.replace(/^✅\s*/, '') : String(lastFaceIndex);
+            
+            // 現在のUIを一度引っ込めてアニメーションさせる
+            resultDisplay.classList.add('opacity-0', 'scale-50');
+            resultDisplay.classList.remove('opacity-100', 'scale-100');
+            
+            setTimeout(() => {
+                // 上部のテキストを「LAST ONE!」に変更
+                document.getElementById('result-title').innerText = '最後のテーマは？';
+                resultNumber.innerText = rawText;
+                
+                resultNumber.className = "font-black bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-teal-700 drop-shadow-sm text-center break-words max-w-full px-4 " + 
+                    (rawText.length > 6 ? "text-5xl md:text-6xl py-4" : 
+                     rawText.length > 3 ? "text-7xl md:text-8xl py-2" : "text-9xl");
+
+                resultDisplay.classList.remove('opacity-0', 'scale-50');
+                resultDisplay.classList.add('opacity-100', 'scale-100');
+            }, 400);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onMouseMove(event) {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        }
+
+        function onTouchMove(event) {
+            if(event.touches.length > 0) {
+                mouseX = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+            }
+        }
+
+        const timeStep = 1 / 60; // 60 FPS physics
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Step physics world forward
+            world.step(timeStep);
+
+            // Sync visual mesh with physical body
+            diceMesh.position.copy(diceBody.position);
+            diceMesh.quaternion.copy(diceBody.quaternion);
+
+            // Check if dice has stopped rolling
+            if (isRolling) {
+                const velocitySq = diceBody.velocity.lengthSquared();
+                const angularVelocitySq = diceBody.angularVelocity.lengthSquared();
+                
+                // If moving very slowly and close to the ground
+                if (velocitySq < 0.05 && angularVelocitySq < 0.05 && diceBody.position.y < 3) {
+                    isRolling = false;
+                    
+                    // Small delay to ensure it settles, then show result
+                    setTimeout(() => {
+                        const resultIndex = getDiceResult();
+
+                        // 既に出た目の場合は自動で振り直す
+                        if (completedFaces.has(resultIndex)) {
+                            rollDice();
+                            return;
+                        }
+
+                        // 新しく出た目の処理
+                        markFaceCompleted(resultIndex);
+                        
+                        // ダイスを画面中央に移動して静止させる (y=1は床にピッタリ接地する高さ)
+                        diceBody.position.set(0, 1, 0);
+                        diceBody.velocity.set(0, 0, 0);
+                        diceBody.angularVelocity.set(0, 0, 0);
+                        
+                        // 入力制御の更新
+                        setInputsEnabled(true);
+
+                        const inputEl = document.getElementById(`face-${resultIndex}`);
+                        const rawText = inputEl ? inputEl.value.replace(/^✅\s*/, '') : String(resultIndex);
+                        const resultText = rawText;
+                        
+                        document.getElementById('result-title').innerText = '今回のトークテーマは？';
+                        resultNumber.innerText = resultText;
+                        
+                        // Adjust font size dynamically based on text length
+                        resultNumber.className = "font-black bg-clip-text text-transparent bg-gradient-to-br from-emerald-500 to-teal-700 drop-shadow-sm text-center break-words max-w-full px-4 " + 
+                            (resultText.length > 6 ? "text-5xl md:text-6xl py-4" : 
+                             resultText.length > 3 ? "text-7xl md:text-8xl py-2" : "text-9xl");
+
+                        resultDisplay.classList.remove('opacity-0', 'scale-50');
+                        resultDisplay.classList.add('opacity-100', 'scale-100');
+
+                        // 5つの目が出揃ったら、最後の1つをボタンで表示するようにする
+                        if (completedFaces.size === 5) {
+                            document.querySelector('#roll-btn span.relative').innerText = '最後のテーマを見る';
+                        }
+                    }, 200);
+                }
+            }
+
+            // Parallax camera effect based on mouse/touch
+            targetCameraX = mouseX * 5;
+            targetCameraY = 15 + mouseY * 2;
+            
+            camera.position.x += (targetCameraX - camera.position.x) * 0.05;
+            camera.position.y += (targetCameraY - camera.position.y) * 0.05;
+            camera.lookAt(0, 0, 0);
+
+            // Render scene
+            renderer.render(scene, camera);
+        }
+
+        // Initialize application on load
+        window.onload = init;
+    </script>
+</body>
+</html>
