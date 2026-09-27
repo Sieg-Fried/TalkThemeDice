@@ -55,18 +55,37 @@
     <!-- UI Layer -->
     <div id="ui-layer" class="py-8 px-4">
         
-        <!-- Settings Panel for Custom Text -->
-        <div class="pointer-events-auto absolute top-4 left-4 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 shadow-xl w-48 transition-transform transform z-20 hidden md:block group hover:bg-white/20">
-            <h3 class="text-white text-sm font-bold mb-3 tracking-wide">トークテーマ一覧</h3>
-            <div class="flex flex-col gap-2">
-                <input type="text" id="face-1" value="トークテーマ１" placeholder="トークテーマ１" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
-                <input type="text" id="face-2" value="トークテーマ２" placeholder="トークテーマ２" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
-                <input type="text" id="face-3" value="トークテーマ３" placeholder="トークテーマ３" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
-                <input type="text" id="face-4" value="トークテーマ４" placeholder="トークテーマ４" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
-                <input type="text" id="face-5" value="トークテーマ５" placeholder="トークテーマ５" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
-                <input type="text" id="face-6" value="トークテーマ６" placeholder="トークテーマ６" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+        <!-- Settings Panel Wrapper -->
+        <div class="pointer-events-auto absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
+            <!-- Mobile Toggle Button -->
+            <button id="settings-toggle-btn" class="md:hidden bg-white/10 backdrop-blur-md border border-white/20 shadow-xl text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-white/20 transition-colors active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>テーマ設定</span>
+            </button>
+
+            <!-- Settings Panel for Custom Text -->
+            <div id="settings-panel" class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 shadow-xl w-60 max-w-[90vw] transition-transform transform hidden md:block group hover:bg-white/20">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-white text-sm font-bold tracking-wide">トークテーマ一覧</h3>
+                    <button id="close-settings-btn" class="md:hidden text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-white/20 active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <input type="text" id="face-1" value="トークテーマ１" placeholder="トークテーマ１" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                    <input type="text" id="face-2" value="トークテーマ２" placeholder="トークテーマ２" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                    <input type="text" id="face-3" value="トークテーマ３" placeholder="トークテーマ３" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                    <input type="text" id="face-4" value="トークテーマ４" placeholder="トークテーマ４" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                    <input type="text" id="face-5" value="トークテーマ５" placeholder="トークテーマ５" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                    <input type="text" id="face-6" value="トークテーマ６" placeholder="トークテーマ６" class="w-full bg-gray-900/60 text-white border border-gray-600 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+                </div>
+                <p id="edit-warning" class="text-xs text-amber-400 mt-3 hidden">現在トークテーマが進行中のため編集できません</p>
             </div>
-            <p id="edit-warning" class="text-xs text-amber-400 mt-3 hidden">現在トークテーマが進行中のため編集できません</p>
         </div>
 
         <!-- Header -->
@@ -107,6 +126,7 @@
         
         // UI Elements
         let resultDisplay, resultNumber, rollBtn, resetBtn, closeResultBtn;
+        let settingsToggleBtn, settingsPanel, closeSettingsBtn;
         let faceInputs = [];
         let completedFaces = new Set();
 
@@ -123,6 +143,10 @@
             rollBtn = document.getElementById('roll-btn');
             resetBtn = document.getElementById('reset-btn');
             closeResultBtn = document.getElementById('close-result-btn');
+
+            settingsToggleBtn = document.getElementById('settings-toggle-btn');
+            settingsPanel = document.getElementById('settings-panel');
+            closeSettingsBtn = document.getElementById('close-settings-btn');
 
             for(let i=1; i<=6; i++) {
                 const input = document.getElementById(`face-${i}`);
@@ -218,6 +242,16 @@
                 resultDisplay.classList.remove('opacity-100', 'scale-100');
             });
             
+            // Mobile settings panel toggle
+            settingsToggleBtn.addEventListener('click', () => {
+                settingsPanel.classList.remove('hidden');
+                settingsToggleBtn.style.display = 'none';
+            });
+            closeSettingsBtn.addEventListener('click', () => {
+                settingsPanel.classList.add('hidden');
+                settingsToggleBtn.style.display = '';
+            });
+
             // Interaction for parallax camera effect
             window.addEventListener('mousemove', onMouseMove, false);
             window.addEventListener('touchmove', onTouchMove, { passive: true });
@@ -445,6 +479,12 @@
             
             // Disable inputs while rolling
             setInputsEnabled(false);
+
+            // Auto-close settings panel on mobile when rolling to see the dice clearly
+            if (window.innerWidth < 768) {
+                settingsPanel.classList.add('hidden');
+                settingsToggleBtn.style.display = '';
+            }
             
             // Hide result UI
             resultDisplay.classList.add('opacity-0', 'scale-50');
